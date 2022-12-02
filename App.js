@@ -7,14 +7,32 @@ import Device from 'expo-device';
 import * as Location from 'expo-location';
 import React from "react";
 import MapView, {Marker}from 'react-native-maps';
+import * as SQLite from "expo-sqlite";
 
-const AnyReactComponent = ({ text }) => <div>{text}</div>;
+//const AnyReactComponent = ({ text }) => <div>{text}</div>;
 
 //Initializing the SDK. 
 // Parse.setAsyncStorage(AsyncStorage);
 // //You need to copy BOTH the the Application ID and the Javascript Key from: Dashboard->App Settings->Security & Keys 
 // Parse.initialize('zAGXnm4PCSN7pG49TJNrlUOWq2xPg1S8bz68VusM', '9UZkCqABBIkIe4BYVQsohhfjs0ayqSqtih65kKQy');
 // Parse.serverURL = 'https://parseapi.back4app.com/';
+
+function openDatabase() {
+  if (Platform.OS === "web") {
+    return {
+      transaction: () => {
+        return {
+          executeSql: () => {},
+        };
+      },
+    };
+  }
+
+  const db = SQLite.openDatabase("users.db");
+  return db;
+}
+
+const db = openDatabase();
 
 const Stack = createNativeStackNavigator();
 
@@ -89,6 +107,33 @@ function RegisterScreen({ navigation }) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [forceUpdate, forceUpdateId] = useForceUpdate();
+
+  useEffect(() => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        "create table if not exists items (id integer primary key not null, name text, email text, password text);"
+      );
+    });
+  }, []);
+
+  const add = (text) => {
+    // is text empty?
+    if (text === null || text === "") {
+      return false;
+    }
+
+    db.transaction(
+      (tx) => {
+        tx.executeSql("insert into users (name, email, password) values (?, ?, ?)", [text][text][text]);
+        tx.executeSql("select * from users", [], (_, { rows }) =>
+          console.log(JSON.stringify(rows))
+        );
+      },
+      null,
+      forceUpdate
+    );
+  };
   return (
     <KeyboardAvoidingView
       //     behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -115,7 +160,7 @@ function RegisterScreen({ navigation }) {
               style={styles.TextInput}
               placeholder="Name"
               placeholderTextColor="#003f5c"
-              onChangeText={(name) => setEmail(name)}
+              onChangeText={(name) => setName(name)}
             />
           </View>
           <View style={styles.inputView}>
